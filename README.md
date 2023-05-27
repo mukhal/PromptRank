@@ -35,7 +35,7 @@ python run.py \
 
 #### Citation
 If you use this code, please consider citing our paper:
-```
+```python
 @article{promptrank,
   title={Few-shot Reranking for Multi-hop QA via Language Model Prompting},
   author={Khalifa, Muhammad and Logeswaran, Lajanugen and Lee, Moontae and Lee, Honglak and Wang, Lu},
