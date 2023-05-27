@@ -31,3 +31,15 @@ python run.py \
 --temperature 1.0 \
 --val_data data/hotpotqa/dev2/dev2.json \
 ```
+
+
+#### Citation
+If you use this code, please consider citing our paper:
+```
+@article{promptrank,
+  title={Few-shot Reranking for Multi-hop QA via Language Model Prompting},
+  author={Khalifa, Muhammad and Logeswaran, Lajanugen and Lee, Moontae and Lee, Honglak and Wang, Lu},
+  journal={arXiv preprint arXiv:2205.12650},
+  year={2023}
+}
+```
