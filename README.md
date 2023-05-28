@@ -1,11 +1,9 @@
 # Few-shot Reranking for Multi-hop QA via Language Model Prompting
 
 We propose an approach for unsupervised re-ranking of multi-hop document paths for open-domain QA. PromptRank constructs a prompt that consists of **(i) an instruction** and **(ii) the path** and uses a language model to score paths as probability of generating the question given the path.
-
-![main](./img/overview.png)
-
-
-
+<p align="center">
+<img src="img/overview.png"  width="700" height="250">
+</p>
 
 # Instructions 
 
@@ -83,7 +81,10 @@ python run.py \
 
 **Note:** The code supports either instruction ensembling or demonstration ensembling -- not both. 
 
-**Acknolwledgements**: We use many components from [PathRetriever](https://github.com/AkariAsai/learning_to_retrieve_reasoning_paths). So thanks to Akari Asai and others for providing their code and models.
+
+----- 
+### Acknowledgements 
+We use many components from [PathRetriever](https://github.com/AkariAsai/learning_to_retrieve_reasoning_paths). So thanks to Akari Asai and others for providing their code and models.
 
 #### Citation
 If you use this code, please consider citing our paper:
