@@ -1,0 +1,10 @@
+Document: <P> Review previous documents and ask some question. Question
+Document: <P> Review the previous documents and answer question. Question:
+Document: <P> Read the previous documents and write the following question. Question:
+Document: <P> Search previous documents and ask the question. Question:
+To analyze the documents and ask question. Document: <P> Question:
+Document: <P> To read the previous documents and write a question. Question:
+Document: <P> Read previous documents and write your exam question. Question:
+Document: <P> Read the previous documents and ask this question. Question:
+Read two documents and answer a question. Document: <P> Question:
+Identify all documents and ask question. Document: <P> Question:

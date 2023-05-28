@@ -13,16 +13,15 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
-from src.eval_utils import evaluate_retrieval
+from src.eval_utils import compute_metrics
 from src.prompt_utils import *
 from src.data_utils import *
-
+from src.promptrank import PromptRank
 ## set seed
 def init_seed(seed):
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-
 
 def log_metrics(metrics, best=False, test=False):
     for k, v in metrics.items():
@@ -37,73 +36,9 @@ def log_metrics(metrics, best=False, test=False):
             continue
         print("%s: %.4f" % (k, v))
 
-if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument("--model", type=str, default="google/t5-small-lm-adapt")
-    parser.add_argument("--demos_file", type=str, default=None)
-    parser.add_argument(
-        "--eval_data",
-        type=str,
-        default=
-        "/home/khalifam/stuff/odqa/PromptRetriever/data/hotpotqa/dev1/dev1.json"
-    )
-    parser.add_argument("--device", type=str, default="cuda:0")
-    parser.add_argument(
-        "--outdir",
-        type=str,
-        default=None)
-    parser.add_argument("--save_retrieved_path", type=str, default=None)
-    parser.add_argument(
-        "--prompt_template",
-        type=str,
-        default=
-        'Document: <P> Review previous documents and ask some question. Question:'
-    )
-    parser.add_argument("--ensemble_prompts", action="store_true")
-    parser.add_argument("--n_ensemble_prompts", type=int, default=5)
-    parser.add_argument("--instruction_template_file", type=str, default="prompt-templates/top_instructions.txt")
-    parser.add_argument("--ensembling_method", type=str, default="mean")
-    parser.add_argument("--demos_ids", type=str, default="0,1", help="demos ids to use")
-    parser.add_argument(
-        "--scoring_method",
-        type=str,
-        default="conditional_plp",
-        help="method used to compute relevance score",
-        choices=["prompt_plp", "conditional_plp", "raw", "tfidf"])
-    parser.add_argument("--eval_batch_size", type=int, default=32)
-    parser.add_argument("--n_eval_examples", type=int, default=None)
-    parser.add_argument("--tfidf_pool_size", type=int, default=100)
-    parser.add_argument("--top_k_second_hops",
-                        type=int,
-                        default=3)
-    parser.add_argument("--top_k_first_hops", type=int, default=5)
-    parser.add_argument("--use_raw_score", action="store_true", help="use unnormalized raw score (logits) instead of logprobs")
-    parser.add_argument("--combine_hops_method", type=str, default="separate", choices=["separate", "sep-concat", "concat"], help="how to combine first and second hop prompts")
-    parser.add_argument("--prepend_title",
-                        action="store_true",
-                        help="prepend titles to paragraphs")
-    parser.add_argument("--max_doc_len", type=int, default=230)
-    parser.add_argument("--demo_max_doc_len", type=int, default=100)
-    parser.add_argument("--max_prompt_len", type=int, default=600)
-    parser.add_argument("--demo_max_prompt_len", type=int, default=1024)
-    parser.add_argument("--n_workers", type=int, default=1)
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--db_path", type=str, default="path-retriever/models/wiki_db/wiki_abst_only_hotpotqa_w_original_title.db")
-    parser.add_argument("--tfidf_retriever_path", type=str,
-    default="path-retriever/models/tfidf_retriever/wiki_open_full_new_db_intro_only-tfidf-ngram=2-hash=16777216-tokenizer=simple.npz")
-    parser.add_argument("--lower_case", action="store_true", help="lower case")
-    parser.add_argument("--use_bm25", action="store_true", help="rerank with bm25")
-    parser.add_argument("--temperature", type=float, default=1.0)
-    parser.add_argument("--reverse_path", action="store_true", help="reverse document paths")
-    parser.add_argument("--truncate_demos",
-                        action="store_true",
-                        help="truncate demos to max_doc_len")
-    parser.add_argument("--n_ensemble_demos", type=int, default=3)
-    parser.add_argument("--bridge_only" , action="store_true", help="use bridge questions only")
 
-    args = parser.parse_args()
+def main(args):
     init_seed(args.seed)
-
     print("Reranking LM used: {} ".format(args.model))
 
     if 'gpt2' in args.model:
@@ -171,6 +106,8 @@ if __name__ == "__main__":
         ## read remplate from args.prompt_template_file 
         with open(args.instruction_template_file, "r") as f:
             prompt_template = [l.strip() for l in f.readlines()]
+        
+        prompt_template = prompt_template[:args.n_ensemble_instructions]
         print("Ensembling instructions -- no in-context demos used...")
 
     if isinstance(prompt_template, list):
@@ -190,17 +127,98 @@ if __name__ == "__main__":
     if args.eval_data.endswith('.json'):
         with open(args.eval_data) as f:
             eval_data = json.load(f)
+    
+    if args.n_eval_examples is not None:
+        eval_data = eval_data[:args.n_eval_examples]
 
-    metrics_docs = evaluate_retrieval(args, model,
-    eval_data,
-    tokenizer,
-    tfidf_retriever=tfidf_retriever)
-    print(json.dumps(metrics_docs, indent=4))
+    ranker = PromptRank(tokenizer=tokenizer, 
+                        tfidf_retriever=tfidf_retriever, 
+                        model=model)
+
+    retrieved_docs = ranker.retrieve(questions=eval_data, args=args)
+
+    metrics = compute_metrics(retrieved_docs)
+    print(json.dumps(metrics, indent=4))
 
     if args.save_retrieved_path:
         with open(args.save_retrieved_path, "w") as f:
-            json.dump(metrics_docs, f)
-
+            json.dump(retrieved_docs, f)
+        
+        ## save metrics 
+        with open(args.save_retrieved_path[:-5] + ".metrics", "w") as f:
+            json.dump(metrics, f)
+        
         with open(args.save_retrieved_path[:-5] + ".args", "w") as f:
             json.dump(vars(args), f)
 
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("--model", type=str, default="google/t5-small-lm-adapt")
+    parser.add_argument("--demos_file", type=str, default=None)
+    parser.add_argument(
+        "--eval_data",
+        type=str,
+        default=
+        "/home/khalifam/stuff/odqa/PromptRetriever/data/hotpotqa/dev1/dev1.json"
+    )
+    parser.add_argument("--device", type=str, default="cuda:0")
+    parser.add_argument(
+        "--outdir",
+        type=str,
+        default=None)
+    parser.add_argument("--save_retrieved_path", type=str, default=None)
+    parser.add_argument(
+        "--prompt_template",
+        type=str,
+        default=
+        'Document: <P> Review previous documents and ask some question. Question:'
+    )
+    parser.add_argument("--ensemble_prompts", action="store_true")
+    parser.add_argument("--n_ensemble_instructions", type=int, default=5)
+    parser.add_argument("--instruction_template_file", type=str, default="instruction-templates/top_instructions.txt")
+    parser.add_argument("--ensembling_method", type=str, default="mean")
+    parser.add_argument("--demos_ids", type=str, default="0,1", help="demos ids to use")
+    parser.add_argument(
+        "--scoring_method",
+        type=str,
+        default="conditional_plp",
+        help="method used to compute relevance score",
+        choices=["prompt_plp", "conditional_plp", "raw", "tfidf"])
+    parser.add_argument("--eval_batch_size", type=int, default=32)
+    parser.add_argument("--n_eval_examples", type=int, default=None)
+    parser.add_argument("--tfidf_pool_size", type=int, default=100)
+    parser.add_argument("--top_k_second_hops",
+                        type=int,
+                        default=3)
+    parser.add_argument("--top_k_first_hops", type=int, default=5)
+    parser.add_argument("--use_raw_score", action="store_true", help="use unnormalized raw score (logits) instead of logprobs")
+    parser.add_argument("--combine_hops_method", type=str, default="separate", choices=["separate", "sep-concat", "concat"], help="how to combine first and second hop prompts")
+    parser.add_argument("--prepend_title",
+                        action="store_true",
+                        help="prepend titles to paragraphs")
+    parser.add_argument("--max_doc_len", type=int, default=230)
+    parser.add_argument("--demo_max_doc_len", type=int, default=100)
+    parser.add_argument("--max_prompt_len", type=int, default=600)
+    parser.add_argument("--demo_max_prompt_len", type=int, default=1024)
+    parser.add_argument("--n_workers", type=int, default=1)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--db_path", type=str, default="path-retriever/models/wiki_db/wiki_abst_only_hotpotqa_w_original_title.db")
+    parser.add_argument("--tfidf_retriever_path", type=str,
+    default="path-retriever/models/tfidf_retriever/wiki_open_full_new_db_intro_only-tfidf-ngram=2-hash=16777216-tokenizer=simple.npz")
+    parser.add_argument("--lower_case", action="store_true", help="lower case")
+    parser.add_argument("--use_bm25", action="store_true", help="rerank with bm25")
+    parser.add_argument("--temperature", type=float, default=1.0)
+    parser.add_argument("--reverse_path", action="store_true", help="reverse document paths")
+    parser.add_argument("--truncate_demos",
+                        action="store_true",
+                        help="truncate demos to max_doc_len")
+    parser.add_argument("--n_ensemble_demos", type=int, default=3)
+    parser.add_argument("--bridge_only" , action="store_true", help="use bridge questions only")
+
+
+    
+    args = parser.parse_args()
+    main(args)
+   
