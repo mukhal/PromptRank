@@ -39,7 +39,7 @@ def log_metrics(metrics, best=False, test=False):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--model", type=str, default="gpt2-medium")
+    parser.add_argument("--model", type=str, default="google/t5-small-lm-adapt")
     parser.add_argument("--demos_file", type=str, default=None)
     parser.add_argument(
         "--eval_data",
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--ensemble_prompts", action="store_true")
     parser.add_argument("--n_ensemble_prompts", type=int, default=5)
-    parser.add_argument("--prompt_template_file", type=str, default="prompt-templates/top_instructions.txt")
+    parser.add_argument("--instruction_template_file", type=str, default="prompt-templates/top_instructions.txt")
     parser.add_argument("--ensembling_method", type=str, default="mean")
     parser.add_argument("--demos_ids", type=str, default="0,1", help="demos ids to use")
     parser.add_argument(
@@ -70,9 +70,9 @@ if __name__ == "__main__":
         default="conditional_plp",
         help="method used to compute relevance score",
         choices=["prompt_plp", "conditional_plp", "raw", "tfidf"])
-    parser.add_argument("--eval_batch_size", type=int, default=50)
+    parser.add_argument("--eval_batch_size", type=int, default=32)
     parser.add_argument("--n_eval_examples", type=int, default=None)
-    parser.add_argument("--tfidf_pool_size", type=int, default=40)
+    parser.add_argument("--tfidf_pool_size", type=int, default=100)
     parser.add_argument("--top_k_second_hops",
                         type=int,
                         default=3)
@@ -116,7 +116,6 @@ if __name__ == "__main__":
         tokenizer = T5Tokenizer.from_pretrained(args.model)
 
     model = model.to(args.device)
-
     prompt_template = args.prompt_template  # use first prompt format for now
     assert "<P>" in prompt_template, "invalid prompt format!"
 
@@ -156,9 +155,7 @@ if __name__ == "__main__":
 
         else:
             print("Using in-context demonstrations with ids {} -- no ensemble".format(args.demos_ids))
-
             ids = [int(i) for i in args.demos_ids.split(",")]
-
             demos = [demos[i] for i in ids]
             examples = []
             for d in demos:
@@ -166,19 +163,23 @@ if __name__ == "__main__":
                                         prompt_template=prompt_template
                                         ) + " " + d["question"]
                 examples.append(example)
-
             prompt_template = " ".join(examples) + " " + prompt_template
 
         setattr(args, "max_prompt_len", args.demo_max_prompt_len)
 
     elif args.ensemble_prompts:
         ## read remplate from args.prompt_template_file 
-        with open(args.prompt_template_file, "r") as f:
+        with open(args.instruction_template_file, "r") as f:
             prompt_template = [l.strip() for l in f.readlines()]
-        print("Ensemble prompts -- no in-context demos")
+        print("Ensembling instructions -- no in-context demos used...")
 
+    if isinstance(prompt_template, list):
+        print("*" * 50)
+        print("Instruction templates used: ", "\n".join(prompt_template))
+        print("*" * 50)
+    else:
+        print("Instruction template used: ", prompt_template)
     setattr(args, "prompt_template", prompt_template)
-    print("Prompt template(s) used: ", prompt_template)
 
     db_path = args.db_path
     tfidf_retriever = TfidfRetriever(
