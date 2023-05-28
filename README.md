@@ -16,8 +16,8 @@ We propose an approach for unsupervised re-ranking of multi-hop document paths f
 pip install -r requirements.txt
 ```
 
-#### 3. Downloading processed HotpotQA data
-The hotpotqa processed data can be downloaded from [Google Drive](https://drive.google.com/file/d/1vBjSe5dzEQBK_IHNTC1eEpLR3pIqDIU3/view?usp=sharing). Then unzip the data and place the content it in ```data/hotpotqa```
+#### 3. Downloading processed data
+The HotpotQA and 2WikiMQA processed data can be downloaded from [Google Drive] The data is preprocessed by retrieving 200 top TF-IDF articles to seed up inference. (https://drive.google.com/file/d/1mI7XAdHWLhlW6fMOW3LJQMPipSmlnP67/view?usp=share_link). Then unzip the data and place the content it in ```data/```
 
 #### 4. Run and evaluate PromptRank
 ```
@@ -29,5 +29,17 @@ python run.py \
 --tfidf_pool_size 100  \
 --n_eval_examples 1000 \
 --temperature 1.0 \
---val_data data/hotpotqa/dev2/dev2.json \
+--val_data data/hotpotqa/dev.json \
+```
+
+
+#### Citation
+If you use this code, please consider citing our paper:
+```
+@article{promptrank,
+  title={Few-shot Reranking for Multi-hop QA via Language Model Prompting},
+  author={Khalifa, Muhammad and Logeswaran, Lajanugen and Lee, Moontae and Lee, Honglak and Wang, Lu},
+  journal={arXiv preprint arXiv:2205.12650},
+  year={2023}
+}
 ```
