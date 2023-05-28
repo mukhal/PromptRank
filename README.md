@@ -17,7 +17,7 @@ pip install -r requirements.txt
 ```
 
 #### 3. Downloading processed HotpotQA data
-The hotpotqa processed data can be downloaded from [Google Drive](https://drive.google.com/file/d/1vBjSe5dzEQBK_IHNTC1eEpLR3pIqDIU3/view?usp=sharing). Then unzip the data and place the content it in ```data/hotpotqa```
+The HotpotQA and 2WikiMQA processed data can be downloaded from [Google Drive] (https://drive.google.com/file/d/1mI7XAdHWLhlW6fMOW3LJQMPipSmlnP67/view?usp=share_link). Then unzip the data and place the content it in ```data/```
 
 #### 4. Run and evaluate PromptRank
 ```
