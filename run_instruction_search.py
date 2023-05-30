@@ -13,8 +13,6 @@ from argparse import ArgumentParser
 from torch.utils.data import DataLoader, Dataset
 from transformers import AdamW, get_linear_schedule_with_warmup, default_data_collator
 
-torch.autograd.set_detect_anomaly(True)
-sys.path.append("/home/khalifam/stuff/odqa/PathRetriever/")
 from retriever.tfidf_vectorizer_article import TopTfIdf
 from pipeline.tfidf_retriever import TfidfRetriever
 from nltk.tokenize import sent_tokenize
