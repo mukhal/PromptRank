@@ -47,6 +47,21 @@ python run.py \
 --ensemble_prompts 
 ```
 
+This uses the top 10 instructions found over HotpotQA which are in `instruction-templates/top_instructions.txt`: 
+```python
+Document: <P> Review previous documents and ask some question. Question
+Document: <P> Review the previous documents and answer question. Question:
+Document: <P> Read the previous documents and write the following question. Question:
+Document: <P> Search previous documents and ask the question. Question:
+To analyze the documents and ask question. Document: <P> Question:
+Document: <P> To read the previous documents and write a question. Question:
+Document: <P> Read previous documents and write your exam question. Question:
+Document: <P> Read the previous documents and ask this question. Question:
+Read two documents and answer a question. Document: <P> Question:
+Identify all documents and ask question. Document: <P> Question:
+```
+
+
 #### 4.(c) To run PromptRank with a in-context learning (only two demonstrations: one bridge and one yes/no question) 
 ```
 python run.py \
